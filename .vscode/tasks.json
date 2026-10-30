@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label":"Restore dependencies","type":"process","command":"dotnet","args":["restore"],"problemMatcher":"$msCompile"},
+    {"label":"Build (Release)","type":"process","command":"dotnet","args":["build","-c","Release"],"group":{"kind":"build","isDefault":true},"problemMatcher":"$msCompile"},
+    {"label":"Preview Steam achievements","type":"process","command":"dotnet","args":["run","-c","Release","--","--list"],"problemMatcher":[]},
+    {"label":"Unlock (requires confirmation)","type":"process","command":"dotnet","args":["run","-c","Release","--","--unlock"],"problemMatcher":[],"presentation":{"reveal":"always","panel":"dedicated"}}
+  ]
+}
