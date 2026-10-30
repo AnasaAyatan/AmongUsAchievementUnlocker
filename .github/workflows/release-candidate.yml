@@ -14,9 +14,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Publish framework-dependent Windows x64 app
+      - name: Publish CLI
         shell: pwsh
-        run: dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\publish
+        run: dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\publish\cli
+      - name: Publish GUI
+        shell: pwsh
+        run: dotnet publish .\gui\AmongUsAchievementUnlocker.Gui.csproj -c Release -r win-x64 --self-contained false -o .\publish
       - name: Exclude proprietary native Steamworks libraries
         shell: pwsh
         run: |
@@ -24,6 +27,9 @@ jobs:
           if (Get-ChildItem .\publish -Filter steam_api*.dll -Recurse -ErrorAction SilentlyContinue) {
             throw 'Native Steamworks DLL must not be distributed in this artifact.'
           }
+      - name: Include setup instructions
+        shell: pwsh
+        run: Copy-Item .\docs\WINDOWS-SETUP.md .\publish\START-HERE.md
       - name: Create ZIP
         shell: pwsh
         run: Compress-Archive -Path .\publish\* -DestinationPath .\AmongUsAchievementUnlocker-win-x64-rc.zip -Force
