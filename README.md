@@ -20,6 +20,19 @@ Experimental standalone Windows utility for viewing and requesting Steam achieve
 
 **Not yet implemented:** graphical Windows interface, per-achievement selection, automatic installation of a licensed native Steamworks runtime, or a tested installer.
 
+## Windows GUI (release candidate)
+
+A Windows Forms interface is available under `gui/`. It displays achievement states, supports text filtering and refreshing, and offers a confirmation-gated **Unlock remaining** action. It runs the existing CLI backend from the packaged `cli/` folder. The GUI and its packaging have **not yet been validated on a Windows test machine**.
+
+For the complete GUI package and local build instructions, see [Windows Setup](docs/WINDOWS-SETUP.md). From the repository root:
+
+```powershell
+dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\dist\cli
+dotnet publish .\gui\AmongUsAchievementUnlocker.Gui.csproj -c Release -r win-x64 --self-contained false -o .\dist
+```
+
+Keep a compatible authorized native Steamworks DLL locally in `dist/cli` when testing. The automated ZIP deliberately excludes proprietary native DLLs.
+
 ## Requirements
 
 - Windows x64, Steam running and signed in to the account that owns Among Us
