@@ -134,7 +134,7 @@ public sealed class MainForm : Form
                 return;
             }
 
-            var matches = Regex.Matches(output, @"^\[(UNLOCKED| LOCKED )\]\s+([^\r\n]+)$", RegexOptions.Multiline);
+            var matches = Regex.Matches(output, @"^\s*\[\s*(UNLOCKED|LOCKED)\s*\]\s+([^\r\n]+)\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase);
             if (matches.Count == 0) throw new InvalidOperationException("No achievement records were found in CLI output.");
             items.Clear();
             foreach (Match match in matches)
