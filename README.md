@@ -1,42 +1,92 @@
-# Among Us Achievement Unlocker (experimental)
+# Among Us Achievement Unlocker
 
-C# / .NET 8 utility for reading and requesting Steam achievement changes for Among Us (Steam App ID `945360`). **This is not a verified in-game mod**; Steam API initialization may reject a separate process. No bypasses, injection, anti-cheat modification or multiplayer gameplay modifications are provided.
+Experimental standalone Windows utility for viewing and requesting Steam achievement changes for **Among Us** (Steam App ID `945360`).
 
-## Get started on Windows with VS Code
+> Unofficial community project. Not affiliated with, endorsed by, or supported by Innersloth or Valve. This tool changes Steam achievement records; it does not modify matches, provide gameplay advantages, inject into the game, or bypass anti-cheat.
 
-1. Install Git, [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), [VS Code](https://code.visualstudio.com/), [GitHub CLI](https://cli.github.com/) and the recommended VS Code C# extensions.
-2. Extract this folder to `%USERPROFILE%\Documents\AmongUsAchievementUnlocker` (or your actual Windows Documents location).
-3. Open the folder in VS Code using **File > Open Folder**.
-4. Open **Terminal > New Terminal** and run:
+## Status
+
+**v0.1.0 release candidate — source development.** The developer's Windows test successfully read all 33 Steam achievements and a subsequent read showed 33/33 unlocked. This is a report from one installation, not a guarantee of compatibility for other accounts or future game updates. Packaged release testing is still outstanding.
+
+## Features
+
+- Read achievement states with `--list`
+- Confirmation-gated unlock requests with `--unlock`
+- Interactive menu when launched with no arguments (defaults to read-only mode)
+- Checks that Steam returns App ID `945360`
+- Waits for Steam user stats and save callbacks
+- Clearer diagnostics for missing, wrong-architecture or incompatible native Steamworks libraries
+- No account credentials, Steam passwords, or login tokens collected
+
+**Not yet implemented:** graphical Windows interface, per-achievement selection, automatic installation of a licensed native Steamworks runtime, or a tested installer.
+
+## Requirements
+
+- Windows x64, Steam running and signed in to the account that owns Among Us
+- Among Us installed
+- .NET 8 SDK (development) or the appropriate .NET 8 desktop/runtime dependencies for packaged builds
+- Steamworks.NET NuGet version `2024.8.0` (Steamworks SDK 1.60)
+- A compatible x64 `steam_api64.dll` obtained from an authorized Steamworks SDK distribution (not included in this repository)
+
+Do **not** blindly copy `steam_api64.dll` from an unrelated Steam game: it may expose a different SDK interface, producing `EntryPointNotFoundException`. Do not download native DLLs from untrusted third-party DLL sites.
+
+## Quick start for developers
+
+Open this directory in VS Code, then use its PowerShell terminal:
 
 ```powershell
-dotnet --info
 dotnet restore
 dotnet build -c Release
 dotnet run -c Release -- --list
 ```
 
-Use **Terminal > Run Task** for preconfigured restore/build/preview tasks. The `--list` command only reads Steam achievements. You can also run `dotnet run -c Release -- --unlock` to request achievement changes after typing `UNLOCK`.
+The native Steamworks SDK x64 DLL must be available in the executable's runtime search path before starting. When using `dotnet run`, check the output under `bin/Release/net8.0/win-x64/`. Keep proprietary SDK binaries **out of source control**.
 
-## Publish to GitHub
+To open the interactive menu:
 
-Log in first: `gh auth login`. Then run `./Publish-GitHub.ps1` from the VS Code PowerShell terminal. It initializes Git, commits the project and, after **PUBLISH** confirmation, creates a **private** GitHub repository and pushes the source. It does not overwrite existing GitHub repositories. If a remote already exists, it only prints the remote and the manual push command.
+```powershell
+dotnet run -c Release --
+```
 
-Alternatively, use `git init -b main`, `git add .`, `git commit -m "Initial commit"`, then `gh repo create AmongUsAchievementUnlocker --private --source . --remote origin --push`.
+To request unlocking remaining achievements:
 
-## Project structure
+```powershell
+dotnet run -c Release -- --unlock
+```
 
-- `Program.cs`: read-only preview and confirmation-gated Steam unlock request
-- `AmongUsAchievementUnlocker.csproj`: .NET and Steamworks.NET dependency configuration
-- `.vscode/tasks.json`: restore, build, preview, unlock tasks
-- `.github/workflows/build.yml`: Windows GitHub Actions build check
-- `Publish-GitHub.ps1`: optional private repo creation
-- `steam_appid.txt`: Steam app context marker (not proof of ownership)
+The tool shows current states first and requires the exact confirmation word `UNLOCK` before writing. It uses SteamUserStats.SetAchievement and StoreStats, then waits for acknowledgement. Always check the Steam achievement page and re-run `--list` to confirm persistence.
 
-## Caveats
+## Updating a GitHub checkout
 
-- **Build is not verified in this delivery environment**, and no live Steam client was available for testing.
-- Steam may refuse to initialize or persist updates in a standalone executable. The app ID file cannot grant permissions or establish game ownership.
-- Achievements may be visible and changes potentially irreversible. Use only on an account you control and review Steam/game rules.
-- CI validates compilation only; it cannot authenticate to Steam or unlock achievements.
-- If `SteamAPI.Init` fails, stop: this project does not circumvent Steam integrity or authorization checks.
+```powershell
+git status
+git pull --ff-only origin main
+dotnet restore
+dotnet build -c Release
+```
+
+Avoid committing compiled binaries, local game files, Steam IDs, secrets, or proprietary `steam_api64.dll`.
+
+## Troubleshooting
+
+| Symptom | Likely cause / resolution |
+| --- | --- |
+| `DllNotFoundException` | A compatible x64 `steam_api64.dll` or its transitive dependencies are missing from the runtime search path. |
+| `EntryPointNotFoundException` | The installed native Steam DLL does not match the managed Steamworks.NET SDK version. |
+| `BadImageFormatException` | 32-bit/64-bit native library mismatch; use Windows x64 DLL. |
+| `SteamAPI.Init failed` | Steam is closed, game context was rejected, or configuration is incomplete; ownership and `steam_appid.txt` alone do not guarantee successful initialization. |
+| Wrong App ID | The tool refuses to proceed when Steam does not report `945360`. |
+| `StoreStats` failed or timed out | Steam did not acknowledge saving; retry reading state, check connectivity, and do not assume achievements changed. |
+| Build succeeds but run fails | Compilation does not verify native DLL deployment or Steam authorization. |
+
+For diagnostic support, share the exception text and app output, but **redact Steam account IDs and other identifying data**.
+
+## Safety and limitations
+
+Use only on a Steam account you control. Unlocking achievements may be visible to other users, irreversible in practice, or governed by Valve/Among Us rules. This software provides no guarantee against account restrictions or game updates. It does not impersonate Steam, alter protected processes, or circumvent authorization failures.
+
+## Development and releases
+
+The GitHub Actions build checks C# compilation on Windows without requiring Steam credentials. A successful CI build does **not** mean Steam API behavior was tested. Official Steamworks native redistributables must be handled according to their licenses and are not uploaded by this repository.
+
+See [CHANGELOG.md](CHANGELOG.md) for changes and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for contributor guidance.
