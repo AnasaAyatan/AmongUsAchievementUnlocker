@@ -15,9 +15,17 @@ internal static class Program
     {
         Console.WriteLine("Among Us - Steam Achievement Unlocker (experimental)");
         Console.WriteLine("No gameplay modification. Only works if Steam authorizes the app context.\n");
+        if (args.Length == 0)
+        {
+            Console.WriteLine("1. List achievements (read-only)");
+            Console.WriteLine("2. Unlock remaining achievements (confirmation required)");
+            Console.Write("Choose 1 or 2 [default 1]: ");
+            var choice = Console.ReadLine()?.Trim();
+            args = choice == "2" ? new[] { "--unlock" } : new[] { "--list" };
+        }
         if (args.Length > 1 || (args.Length == 1 && args[0] is not ("--list" or "--unlock")))
         {
-            Console.Error.WriteLine("Usage: AmongUsAchievementUnlocker [--list|--unlock]");
+            Console.Error.WriteLine("Usage: AmongUsAchievementUnlocker [--list|--unlock] (no arguments opens a menu)");
             return 2;
         }
 
