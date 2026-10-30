@@ -7,6 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Keep the standalone CLI from compiling the Windows Forms application. -->
+    <Compile Remove="gui/**/*.cs" />
+    <Compile Remove="dist/**/*.cs" />
+    <Compile Remove="release-candidate/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Steamworks.NET" Version="2024.8.0" />
   </ItemGroup>
   <ItemGroup>
