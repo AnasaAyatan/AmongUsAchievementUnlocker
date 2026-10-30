@@ -21,14 +21,35 @@ internal static class Program
             return 2;
         }
 
-        if (!SteamAPI.Init())
-        {
-            Console.Error.WriteLine("SteamAPI.Init failed. Ensure Steam is running, you own Among Us, and steam_appid.txt is beside this executable.");
-            return 1;
-        }
-
+        bool steamInitialized = false;
         try
         {
+            try
+            {
+                steamInitialized = SteamAPI.Init();
+            }
+            catch (DllNotFoundException)
+            {
+                Console.Error.WriteLine("Missing steam_api64.dll or one of its native dependencies. Install the compatible x64 Steamworks SDK runtime locally; do not commit this DLL.");
+                return 1;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                Console.Error.WriteLine("Incompatible steam_api64.dll: a required Steamworks SDK entry point is missing. Replace it with the matching SDK runtime.");
+                return 1;
+            }
+            catch (BadImageFormatException)
+            {
+                Console.Error.WriteLine("Steamworks DLL architecture mismatch. Use the 64-bit Windows runtime.");
+                return 1;
+            }
+
+            if (!steamInitialized)
+            {
+                Console.Error.WriteLine("SteamAPI.Init failed. Ensure Steam is running, you own Among Us, and steam_appid.txt is beside this executable.");
+                return 1;
+            }
+
             var actualAppId = SteamUtils.GetAppID().m_AppId;
             if (actualAppId != AmongUsAppId)
             {
@@ -132,7 +153,7 @@ internal static class Program
         {
             storeCallback?.Dispose();
             statsCallback?.Dispose();
-            SteamAPI.Shutdown();
+            if (steamInitialized) SteamAPI.Shutdown();
         }
     }
 
