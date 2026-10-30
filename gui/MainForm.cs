@@ -93,7 +93,8 @@ public sealed class MainForm : Form
         achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Achievement ID", DataPropertyName = "Id", FillWeight = 78 });
         achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", DataPropertyName = "State", FillWeight = 22 });
         Controls.Add(achievements);
-        achievements.BringToFront();
+        // Docked controls are laid out in reverse z-order; keep the table behind the header and toolbars.
+        achievements.SendToBack();
 
         Shown += async (_, _) => await RefreshAsync();
     }
@@ -137,7 +138,7 @@ public sealed class MainForm : Form
             if (matches.Count == 0) throw new InvalidOperationException("No achievement records were found in CLI output.");
             items.Clear();
             foreach (Match match in matches)
-                items.Add((match.Groups[2].Value.Trim(), match.Groups[1].Value == "UNLOCKED"));
+                items.Add((match.Groups[2].Value.Trim(), match.Groups[1].Value.Equals("UNLOCKED", StringComparison.OrdinalIgnoreCase)));
             Render();
             status.Text = "Steam achievements loaded.";
         }
