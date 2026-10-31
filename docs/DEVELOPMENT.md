@@ -1,38 +1,46 @@
-# Development Guide
+# Development and Test Guide
 
-## Environment
-Windows x64, VS Code with C# extension, .NET 8 SDK, Git and GitHub CLI. Ensure the repository is a local checkout: `git remote -v`.
+## Projects
+- Root `AmongUsAchievementUnlocker.csproj`: Steamworks.NET .NET 8 **CLI**; excludes `gui/**/*.cs`.
+- `Program.cs`: Steam initialization, stats read/write and error handling.
+- `gui/AmongUsAchievementUnlocker.Gui.csproj`: .NET 8 Windows Forms desktop UI.
+- `gui/MainForm.cs`: search, status filters, progress bar, table, diagnostics, refresh and unlock confirmation. The GUI launches the CLI in a child process from `cli/`.
+- `steam_appid.txt`: expected application context; does not grant ownership.
+- `.github/workflows/build.yml`: source compilation.
+- `.github/workflows/release-candidate.yml`: manual Windows GUI + CLI ZIP packaging, no proprietary Steam DLL.
 
-## Standard workflow
+## Local build
+
+On Windows with VS Code, .NET 8 SDK, Git and Steam:
+
 ```powershell
 git pull --ff-only origin main
-dotnet restore
-dotnet build -c Release
-dotnet run -c Release -- --list
+dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\dist\cli
+dotnet publish .\gui\AmongUsAchievementUnlocker.Gui.csproj -c Release -r win-x64 --self-contained false -o .\dist
 ```
 
-The read-only smoke test requires Steam to be running and a compatible native x64 Steamworks SDK runtime installed locally. CI can compile without a running Steam client.
+Place a licensed compatible SDK 1.60 x64 `steam_api64.dll` **locally** in `dist/cli`. Then run `& .\dist\AmongUsAchievementUnlocker.Gui.exe`. Do not commit the native binary. Both projects are built separately.
 
-## Code map
-- `Program.cs`: application entry point, argument parsing/menu, Steam initialization, callback polling, achievement reads and confirmation-gated writes.
-- `AmongUsAchievementUnlocker.csproj`: .NET 8 x64 build and Steamworks.NET package.
-- `steam_appid.txt`: expected application context marker; not proof of ownership.
-- `.github/workflows/build.yml`: build validation.
+## Verification checklist
 
-## Validation checklist
-1. `dotnet build -c Release` returns zero errors.
-2. No-argument menu defaults to read-only.
-3. `--list` enumerates achievements without changes.
-4. Unexpected App ID fails closed.
-5. Missing/mismatched native DLL produces a usable diagnostic.
-6. `--unlock` requires the literal `UNLOCK`; aborting makes no changes.
-7. Observe `StoreStats` acknowledgment and verify with a **new** `--list` invocation and Steam UI.
+1. Build the root CLI and GUI with zero errors.
+2. Run GUI with Steam open; verify a 33-achievement list for current observed game configuration.
+3. Confirm overall unlocked/remaining values match CLI `--list`.
+4. Test searching by both generated name and internal ID.
+5. Test All / Unlocked / Locked filters. At 33/33, Locked should be empty and unlock disabled.
+6. Confirm progress bar reaches 100% for 33/33.
+7. Toggle diagnostics twice, checking it hides/shows Steam output and does not obscure table.
+8. Test refreshing and resizing/maximizing the window.
+9. Verify missing/incompatible native library failures show usable messages.
+10. Extract a newly built GitHub artifact to a fresh directory, locally supply licensed runtime, test again.
+11. Check the artifact **does not contain** `steam_api64.dll`.
+12. Only perform write tests on your own authorized account; confirm Steam acknowledgement and verify on a new read.
 
-Never test write operations against an account without the owner's explicit authorization. Do not commit game files, SDK DLLs, account identifiers or secrets.
+## Release policy
+Keep `v0.1.0` in draft until the latest GUI and extracted artifact pass. Source pushed to main is not equivalent to an approved downloadable release. Avoid tagging a release based only on CI compilation.
 
-## Roadmap
-- v0.1.0: test and package working console prototype.
-- Later: optional graphical interface, selection by achievement, structured diagnostic output and improved developer setup.
+## Future enhancements
+Official Steam achievement display names/descriptions, optional per-achievement selection, graphical icon/version branding, improved accessibility and native-dependency setup. These features are **not** part of the current release candidate.
 
-## Versioning
-Source commits may land before a tagged release. Tag only after checking the packaged executable on a clean Windows test setup.
+## Security and troubleshooting
+No credential collection. Avoid publishing game binaries or Steam IDs; redact account identifiers in logs. An app ID text file does not override Steam authorization. See [Windows Setup](WINDOWS-SETUP.md) for troubleshooting and runtime details.
