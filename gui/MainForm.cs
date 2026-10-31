@@ -14,6 +14,9 @@ public sealed class MainForm : Form
     private readonly Button refresh = new();
     private readonly Button unlock = new();
     private readonly TextBox details = new();
+    private readonly ComboBox filter = new();
+    private readonly ProgressBar progress = new();
+    private readonly Button diagnostics = new();
     private readonly List<(string Id, bool Unlocked)> items = new();
     private readonly string cliPath = Path.Combine(AppContext.BaseDirectory, "cli", "AmongUsAchievementUnlocker.exe");
     private bool busy;
@@ -21,8 +24,8 @@ public sealed class MainForm : Form
     public MainForm()
     {
         Text = "Among Us Achievement Manager";
-        Width = 960;
-        Height = 730;
+        Width = 1080;
+        Height = 760;
         MinimumSize = new Size(700, 520);
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Color.FromArgb(20, 27, 40);
@@ -64,6 +67,21 @@ public sealed class MainForm : Form
         bar.Controls.Add(refresh);
         bar.Controls.Add(unlock);
         bar.Controls.Add(search);
+        filter.DropDownStyle = ComboBoxStyle.DropDownList;
+        filter.Width = 130;
+        filter.Items.AddRange(new object[] { "All", "Unlocked", "Locked" });
+        filter.SelectedIndex = 0;
+        filter.SelectedIndexChanged += (_, _) => Render();
+        bar.Controls.Add(filter);
+        diagnostics.Text = "Show diagnostics";
+        diagnostics.AutoSize = true;
+        diagnostics.Height = 34;
+        diagnostics.Click += (_, _) =>
+        {
+            details.Visible = !details.Visible;
+            diagnostics.Text = details.Visible ? "Hide diagnostics" : "Show diagnostics";
+        };
+        bar.Controls.Add(diagnostics);
         Controls.Add(bar);
 
         summary.Dock = DockStyle.Top;
@@ -71,12 +89,18 @@ public sealed class MainForm : Form
         summary.Padding = new Padding(21, 6, 0, 0);
         summary.Text = "Not connected";
         Controls.Add(summary);
+        progress.Dock = DockStyle.Top;
+        progress.Height = 8;
+        progress.Style = ProgressBarStyle.Continuous;
+        progress.Maximum = 100;
+        Controls.Add(progress);
 
         details.Multiline = true;
         details.ReadOnly = true;
         details.ScrollBars = ScrollBars.Vertical;
         details.Dock = DockStyle.Bottom;
         details.Height = 150;
+        details.Visible = false;
         details.BackColor = Color.FromArgb(13, 19, 30);
         details.ForeColor = Color.Gainsboro;
         details.Font = new Font("Consolas", 9);
@@ -111,8 +135,9 @@ public sealed class MainForm : Form
         achievements.MultiSelect = false;
         achievements.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
         achievements.ColumnHeadersHeight = 36;
-        achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Achievement ID", DataPropertyName = "Id", FillWeight = 78 });
-        achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", DataPropertyName = "State", FillWeight = 22 });
+        achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Achievement", FillWeight = 44 });
+        achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Steam ID", FillWeight = 38 });
+        achievements.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Status", FillWeight = 18 });
         Controls.Add(achievements);
         // Docked controls are laid out in reverse z-order; keep the table behind the header and toolbars.
         achievements.SendToBack();
@@ -133,11 +158,24 @@ public sealed class MainForm : Form
     {
         string filter = search.Text.Trim();
         achievements.Rows.Clear();
-        foreach (var entry in items.Where(x => x.Id.Contains(filter, StringComparison.OrdinalIgnoreCase)))
-            achievements.Rows.Add(entry.Id, entry.Unlocked ? "Unlocked" : "Locked");
+        var mode = this.filter.SelectedItem?.ToString() ?? "All";
+        foreach (var entry in items.Where(x =>
+            (mode == "All" || (mode == "Unlocked" && x.Unlocked) || (mode == "Locked" && !x.Unlocked)) &&
+            (x.Id.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+             FriendlyName(x.Id).Contains(filter, StringComparison.OrdinalIgnoreCase))))
+            achievements.Rows.Add(FriendlyName(entry.Id), entry.Id, entry.Unlocked ? "Unlocked" : "Locked");
         int unlockedCount = items.Count(x => x.Unlocked);
         summary.Text = $"Unlocked: {unlockedCount} / {items.Count}  |  Remaining: {items.Count - unlockedCount}";
         unlock.Enabled = !busy && items.Any(x => !x.Unlocked);
+        progress.Value = items.Count == 0 ? 0 : (int)Math.Round(100.0 * unlockedCount / items.Count);
+    }
+
+    private static string FriendlyName(string id)
+    {
+        string name = id.Replace("hns_", "Hide and Seek: ")
+                        .Replace('_', ' ');
+        if (name.Length == 0) return id;
+        return char.ToUpperInvariant(name[0]) + name[1..];
     }
 
     private async Task RefreshAsync()
