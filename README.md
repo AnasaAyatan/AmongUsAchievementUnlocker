@@ -1,105 +1,78 @@
 # Among Us Achievement Unlocker
 
-Experimental standalone Windows utility for viewing and requesting Steam achievement changes for **Among Us** (Steam App ID `945360`).
+Unofficial Windows x64 achievement manager for **Among Us** (Steam App ID `945360`). This is a standalone Windows Forms GUI with a Steamworks.NET command-line backend, **not** an injected game mod. It does not alter multiplayer gameplay.
 
-> Unofficial community project. Not affiliated with, endorsed by, or supported by Innersloth or Valve. This tool changes Steam achievement records; it does not modify matches, provide gameplay advantages, inject into the game, or bypass anti-cheat.
+> Not affiliated with Innersloth, Valve, or Steam. Use only with a Steam account you control. Achievement modifications may be visible and difficult to reverse; review applicable rules.
 
-## Status
+## Release status
 
-**v0.1.0 release candidate — source development.** The developer's Windows test successfully read all 33 Steam achievements and a subsequent read showed 33/33 unlocked. This is a report from one installation, not a guarantee of compatibility for other accounts or future game updates. Packaged release testing is still outstanding.
+**v0.1.0 release candidate (not yet a verified published release).** Local Windows testing confirmed CLI compilation, achievement access, 33/33 achievements unlocked, and operation of the GUI with dark table styling. The latest UI additions (progress bar, status filters, humanized labels, collapsible diagnostics) and the downloadable ZIP **still require validation**. Do not represent these features as tested until the release candidate is run.
 
 ## Features
 
-- Read achievement states with `--list`
-- Confirmation-gated unlock requests with `--unlock`
-- Interactive menu when launched with no arguments (defaults to read-only mode)
-- Checks that Steam returns App ID `945360`
-- Waits for Steam user stats and save callbacks
-- Clearer diagnostics for missing, wrong-architecture or incompatible native Steamworks libraries
-- No account credentials, Steam passwords, or login tokens collected
+### Windows GUI (`gui/`)
+- Three-column achievement table: readable generated label, exact Steam achievement ID, and unlock status
+- Search by ID or generated name; filter All / Unlocked / Locked
+- Progress bar and unlocked/remaining counts
+- Refresh from Steam; confirmation-protected **Unlock remaining**
+- Collapsible diagnostics with the raw backend output
+- Dark table styling and improved button contrast
 
-**Not yet implemented:** graphical Windows interface, per-achievement selection, automatic installation of a licensed native Steamworks runtime, or a tested installer.
+The display labels are generated from IDs, **not official Steam achievement titles**. Individual achievement selection, official descriptions, and an installer are **not implemented**.
 
-## Windows GUI (release candidate)
-
-A Windows Forms interface is available under `gui/`. It displays achievement states, supports text filtering and refreshing, and offers a confirmation-gated **Unlock remaining** action. It runs the existing CLI backend from the packaged `cli/` folder. The GUI and its packaging have **not yet been validated on a Windows test machine**.
-
-For the complete GUI package and local build instructions, see [Windows Setup](docs/WINDOWS-SETUP.md). From the repository root:
-
-```powershell
-dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\dist\cli
-dotnet publish .\gui\AmongUsAchievementUnlocker.Gui.csproj -c Release -r win-x64 --self-contained false -o .\dist
-```
-
-Keep a compatible authorized native Steamworks DLL locally in `dist/cli` when testing. The automated ZIP deliberately excludes proprietary native DLLs.
+### CLI (`Program.cs`)
+- `--list`: read-only achievement listing
+- `--unlock`: confirmation-gated attempt to unlock remaining achievements
+- No arguments: interactive menu, defaulting to a read-only listing
+- Steam App ID verification, asynchronous callback handling, and native-library error messages
 
 ## Requirements
 
-- Windows x64, Steam running and signed in to the account that owns Among Us
-- Among Us installed
-- .NET 8 SDK (development) or the appropriate .NET 8 desktop/runtime dependencies for packaged builds
-- Steamworks.NET NuGet version `2024.8.0` (Steamworks SDK 1.60)
-- A compatible x64 `steam_api64.dll` obtained from an authorized Steamworks SDK distribution (not included in this repository)
+Windows 10/11 x64; Steam running and signed in with Among Us owned; .NET 8 runtime (including **Windows Desktop Runtime** for the GUI); .NET 8 SDK for development. The project references Steamworks.NET `2024.8.0` (Steamworks SDK 1.60). A compatible, lawfully obtained x64 `steam_api64.dll` must be installed **locally beside the CLI executable**. Neither the repository nor the GitHub ZIP redistributes Valve's proprietary native binary. Do not use arbitrary DLL download sites or assume a DLL copied from a game is compatible.
 
-Do **not** blindly copy `steam_api64.dll` from an unrelated Steam game: it may expose a different SDK interface, producing `EntryPointNotFoundException`. Do not download native DLLs from untrusted third-party DLL sites.
+## Installation and launch
 
-## Quick start for developers
+See **[Windows GUI Setup](docs/WINDOWS-SETUP.md)** for ZIP contents, runtime installation, build commands, verification and troubleshooting. The GUI is `AmongUsAchievementUnlocker.Gui.exe` in the extracted ZIP root, while the backend is `cli/AmongUsAchievementUnlocker.exe`.
 
-Open this directory in VS Code, then use its PowerShell terminal:
+### Develop in VS Code
 
 ```powershell
-dotnet restore
-dotnet build -c Release
-dotnet run -c Release -- --list
-```
-
-The native Steamworks SDK x64 DLL must be available in the executable's runtime search path before starting. When using `dotnet run`, check the output under `bin/Release/net8.0/win-x64/`. Keep proprietary SDK binaries **out of source control**.
-
-To open the interactive menu:
-
-```powershell
-dotnet run -c Release --
-```
-
-To request unlocking remaining achievements:
-
-```powershell
-dotnet run -c Release -- --unlock
-```
-
-The tool shows current states first and requires the exact confirmation word `UNLOCK` before writing. It uses SteamUserStats.SetAchievement and StoreStats, then waits for acknowledgement. Always check the Steam achievement page and re-run `--list` to confirm persistence.
-
-## Updating a GitHub checkout
-
-```powershell
-git status
 git pull --ff-only origin main
-dotnet restore
-dotnet build -c Release
+dotnet publish .\AmongUsAchievementUnlocker.csproj -c Release -r win-x64 --self-contained false -o .\dist\cli
+dotnet publish .\gui\AmongUsAchievementUnlocker.Gui.csproj -c Release -r win-x64 --self-contained false -o .\dist
+# Install your compatible native DLL into dist\cli locally before launching:
+& .\dist\AmongUsAchievementUnlocker.Gui.exe
 ```
 
-Avoid committing compiled binaries, local game files, Steam IDs, secrets, or proprietary `steam_api64.dll`.
+The application requires its `cli` folder alongside the GUI. For CLI-only testing, use `dotnet run -c Release -- --list` with the compatible native DLL in its runtime search directory.
+
+## GitHub release process
+
+1. Pull the latest `main`, build both projects, and validate the latest UI.
+2. Run the manual [Windows Release Candidate workflow](.github/workflows/release-candidate.yml).
+3. Download the generated artifact, extract to a **new** directory, and supply the native runtime locally as described above.
+4. Test GUI refresh, search, filters, progress, diagnostics and CLI listing from that extracted ZIP; check no proprietary DLL is bundled.
+5. Only then create a **draft** `v0.1.0` release, review the [release notes](docs/RELEASE-NOTES-v0.1.0.md), and publish when satisfied.
+
+GitHub Actions compilation and packaging do **not** test a live Steam session.
+
+## Documentation
+
+- [Windows setup](docs/WINDOWS-SETUP.md)
+- [Developer guide and test checklist](docs/DEVELOPMENT.md)
+- [v0.1.0 release notes](docs/RELEASE-NOTES-v0.1.0.md)
+- [Changelog](CHANGELOG.md)
 
 ## Troubleshooting
 
-| Symptom | Likely cause / resolution |
+| Problem | Action |
 | --- | --- |
-| `DllNotFoundException` | A compatible x64 `steam_api64.dll` or its transitive dependencies are missing from the runtime search path. |
-| `EntryPointNotFoundException` | The installed native Steam DLL does not match the managed Steamworks.NET SDK version. |
-| `BadImageFormatException` | 32-bit/64-bit native library mismatch; use Windows x64 DLL. |
-| `SteamAPI.Init failed` | Steam is closed, game context was rejected, or configuration is incomplete; ownership and `steam_appid.txt` alone do not guarantee successful initialization. |
-| Wrong App ID | The tool refuses to proceed when Steam does not report `945360`. |
-| `StoreStats` failed or timed out | Steam did not acknowledge saving; retry reading state, check connectivity, and do not assume achievements changed. |
-| Build succeeds but run fails | Compilation does not verify native DLL deployment or Steam authorization. |
+| Missing CLI executable | Preserve the `cli` directory next to the GUI executable |
+| `DllNotFoundException` | Check the native Steamworks DLL is present beside the CLI and that its dependencies are installed |
+| `EntryPointNotFoundException` | Native DLL version is incompatible with Steamworks.NET |
+| `BadImageFormatException` | Verify Windows x64 native DLL |
+| `SteamAPI.Init failed` | Check Steam client, ownership and application context; initialization cannot be forced |
+| Achievements appear in CLI but not GUI | Open diagnostics, check parsing and use the current build |
+| Failed `StoreStats` | Do not assume a write was saved; refresh and check Steam |
 
-For diagnostic support, share the exception text and app output, but **redact Steam account IDs and other identifying data**.
-
-## Safety and limitations
-
-Use only on a Steam account you control. Unlocking achievements may be visible to other users, irreversible in practice, or governed by Valve/Among Us rules. This software provides no guarantee against account restrictions or game updates. It does not impersonate Steam, alter protected processes, or circumvent authorization failures.
-
-## Development and releases
-
-The GitHub Actions build checks C# compilation on Windows without requiring Steam credentials. A successful CI build does **not** mean Steam API behavior was tested. Official Steamworks native redistributables must be handled according to their licenses and are not uploaded by this repository.
-
-See [CHANGELOG.md](CHANGELOG.md) for changes and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for contributor guidance.
+Redact Steam IDs and personal details from shared logs. Do not commit `dist/`, binary files, game files, credentials, or the native Steamworks DLL.
